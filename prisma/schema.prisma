@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model attendance {
+  id         String             @id @default(dbgenerated("(uuid())")) @db.Char(36)
+  event_id   String            @db.Char(36)
+  user_id    String            @db.Char(36)
+  status     attendance_status? @default(hadir)
+  scanned_at DateTime?          @default(now()) @db.Timestamp(0)
+  events     events?            @relation(fields: [event_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "attendance_ibfk_1")
+  users      users?             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "attendance_ibfk_2")
+
+  @@index([event_id], map: "event_id")
+  @@index([user_id], map: "user_id")
+  @@unique([event_id, user_id])
+}
+
+model events {
+  id          String       @id @default(dbgenerated("(uuid())")) @db.Char(36)
+  title       String       @db.VarChar(255)
+  description String?      @db.Text
+  start_date  DateTime     @db.Date
+  location    String?      @db.VarChar(255)
+  created_by  String?      @db.Char(36)
+  end_date    DateTime?    @db.Date
+  jam_mulai   String?      @db.VarChar(16)
+  jam_selesai String?      @db.VarChar(16)
+  attendance  attendance[]
+  users       users?       @relation(fields: [created_by], references: [id], onUpdate: NoAction, map: "events_ibfk_1")
+
+  @@index([created_by], map: "created_by")
+}
+
+model instrument_loans {
+  id            String                   @id @default(dbgenerated("(uuid())")) @db.Char(36)
+  instrument_id String?                  @db.Char(36)
+  user_id       String?                  @db.Char(36)
+  loan_date     DateTime?                @default(now()) @db.Timestamp(0)
+  return_date   DateTime?                @db.Timestamp(0)
+  status        instrument_loans_status? @default(dipinjam)
+  instruments   instruments?             @relation(fields: [instrument_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "instrument_loans_ibfk_1")
+  users         users?                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "instrument_loans_ibfk_2")
+
+  @@index([instrument_id], map: "instrument_id")
+  @@index([user_id], map: "user_id")
+}
+
+model instruments {
+  id               String                 @id @default(dbgenerated("(uuid())")) @db.Char(36)
+  name             String                 @db.VarChar(255)
+  condition        instruments_condition? @default(baik)
+  type             String?                @db.VarChar(255)
+  created_at       DateTime?              @default(now()) @db.Timestamp(0)
+  brand            String?                @db.VarChar(100)
+  serial_number    String?                @db.VarChar(100)
+  instrument_loans instrument_loans[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model user_skills {
+  id      String  @id @default(dbgenerated("(uuid())")) @db.Char(36)
+  user_id String? @db.Char(36)
+  skill   String? @db.VarChar(100)
+  rating  Int?
+  penilai String? @db.VarChar(100)
+  users   users?  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "user_skills_ibfk_1")
+
+  @@index([user_id], map: "user_id")
+}
+
+model users {
+  id               String             @id @default(dbgenerated("(uuid())")) @db.Char(36)
+  name             String             @db.VarChar(100)
+  nim              String             @unique(map: "nim") @db.VarChar(20)
+  program_study    String?            @db.VarChar(100)
+  year             String?            @db.VarChar(10)
+  phone            String?            @db.VarChar(20)
+  address          String?            @db.Text
+  attendance_count Int?               @default(0)
+  division         String?            @db.VarChar(100)
+  role             users_role?        @default(anggota)
+  profile_picture  String?            @db.VarChar(255)
+  created_at       DateTime?          @default(now()) @db.Timestamp(0)
+  password         String             @db.VarChar(255)
+  attendance       attendance[]
+  events           events[]
+  instrument_loans instrument_loans[]
+  user_skills      user_skills[]
+}
+
+enum instruments_condition {
+  baik
+  rusak
+  diperbaiki
+}
+
+enum attendance_status {
+  hadir
+  tidak_hadir
+}
+
+enum users_role {
+  admin
+  pengurus
+  anggota
+}
+
+enum instrument_loans_status {
+  dipinjam
+  dikembalikan
+  tersedia
+}
